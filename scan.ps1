@@ -17,9 +17,37 @@ param(
 $ErrorActionPreference = 'SilentlyContinue'
 
 # ---- Color helpers --------------------------------------------------
-# Use native PowerShell -ForegroundColor (works in every host since PS 1.0)
-# instead of ANSI escapes - irm | iex pipelines and older terminals can't
-# always render escape sequences.
+# Native PowerShell -ForegroundColor only has the 16 console colors, none
+# of which is peach. On modern hosts (PS Core 7+, Windows Terminal) we can
+# emit ANSI 256-color escapes for a true peach banner; on classic PS 5.1
+# conhost we fall back to the native palette (Yellow as the closest match).
+
+# PS 6+ (Core) supports ANSI on every platform. On PS 5.1 + Windows we
+# can probe for ANSI support via $Host.UI.SupportsVirtualTerminal (set
+# when conhost has VT mode enabled).
+$script:UseAnsi = $false
+try {
+    if ($PSVersionTable.PSVersion.Major -ge 6) {
+        $script:UseAnsi = $true
+    } elseif ($Host -and $Host.UI -and $Host.UI.SupportsVirtualTerminal) {
+        $script:UseAnsi = $true
+    }
+} catch {}
+
+# Map of high-level color names -> { ansi, native } pair so the rest of
+# the script can ask for a single name and we route appropriately.
+$script:ColorMap = @{
+    Peach    = @{ Ansi = "$([char]27)[38;5;216m"; Native = 'Yellow'    }
+    Yellow   = @{ Ansi = "$([char]27)[38;5;220m"; Native = 'Yellow'    }
+    Orange   = @{ Ansi = "$([char]27)[38;5;208m"; Native = 'DarkYellow'}
+    Green    = @{ Ansi = "$([char]27)[38;5;76m";  Native = 'Green'     }
+    Cyan     = @{ Ansi = "$([char]27)[38;5;87m";  Native = 'Cyan'      }
+    Gray     = @{ Ansi = "$([char]27)[38;5;245m"; Native = 'DarkGray'  }
+    DarkGray = @{ Ansi = "$([char]27)[38;5;240m"; Native = 'DarkGray'  }
+    White    = @{ Ansi = "$([char]27)[38;5;255m"; Native = 'White'     }
+}
+$script:AnsiReset = "$([char]27)[0m"
+
 function Out-Color {
     param(
         [Parameter(Mandatory=$true, Position=0)][string]$Text,
@@ -28,11 +56,18 @@ function Out-Color {
     )
     if ($NoColor) {
         if ($NoNewline) { Write-Host $Text -NoNewline } else { Write-Host $Text }
+        return
+    }
+    $entry = $script:ColorMap[$Color]
+    if ($script:UseAnsi -and $entry) {
+        $line = "$($entry.Ansi)$Text$script:AnsiReset"
+        if ($NoNewline) { Write-Host $line -NoNewline } else { Write-Host $line }
     } else {
+        $native = if ($entry) { $entry.Native } else { 'White' }
         if ($NoNewline) {
-            Write-Host $Text -ForegroundColor $Color -NoNewline
+            Write-Host $Text -ForegroundColor $native -NoNewline
         } else {
-            Write-Host $Text -ForegroundColor $Color
+            Write-Host $Text -ForegroundColor $native
         }
     }
 }
@@ -66,7 +101,7 @@ $banner = @(
 Write-Host ''
 Out-Color '              P O W E R E D   B Y' 'DarkGray'
 Write-Host ''
-foreach ($line in $banner) { Out-Color $line 'Yellow' }
+foreach ($line in $banner) { Out-Color $line 'Peach' }
 Write-Host ''
 Out-Color '       S E C U R I T Y  -  C L A U D E S E C  F L E E T  S C A N N E R' 'DarkGray'
 Write-Host ''
