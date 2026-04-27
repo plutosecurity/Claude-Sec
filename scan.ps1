@@ -46,6 +46,15 @@ function Out-Color {
 $UserDir = Join-Path $env:USERPROFILE '.claude'
 $AppData = if ($env:APPDATA) { Join-Path $env:APPDATA 'Claude' } else { Join-Path $env:USERPROFILE 'AppData\Roaming\Claude' }
 
+# Each entry: { Label = '...'; Path = '...' }. We populate a status next to
+# each as we go so the user can see what was scanned even when empty.
+$scannedPaths = @(
+    @{ Label = 'Claude Code installed plugins'; Path = (Join-Path $UserDir 'plugins\installed_plugins.json'); Kind = 'file' }
+    @{ Label = 'Claude Desktop extensions';     Path = (Join-Path $AppData 'Claude Extensions');             Kind = 'dir'  }
+    @{ Label = 'Claude Desktop config';         Path = (Join-Path $AppData 'claude_desktop_config.json');    Kind = 'file' }
+    @{ Label = 'Claude skill plugins';          Path = (Join-Path $AppData 'local-agent-mode-sessions');     Kind = 'dir'  }
+)
+
 # ── Banner ─────────────────────────────────────────────────────────────
 $banner = @(
     '██████╗ ██╗     ██╗   ██╗████████╗ ██████╗',
@@ -172,6 +181,23 @@ Show-Section 'Plugins'    $plugins
 $total = $connectors.Count + $plugins.Count
 if ($total -eq 0) {
     Out-Color '  No Claude connectors or plugins found on this machine.' 'Yellow'
+    Write-Host ''
+    Out-Color '  Scanned paths:' 'DarkGray'
+    foreach ($p in $scannedPaths) {
+        $exists = if ($p.Kind -eq 'file') {
+            Test-Path -LiteralPath $p.Path -PathType Leaf
+        } else {
+            Test-Path -LiteralPath $p.Path -PathType Container
+        }
+        $status = if ($exists) { '[ found ]' } else { '[missing]' }
+        $color  = if ($exists) { 'Green' } else { 'DarkGray' }
+        Out-Color "    $status " $color -NoNewline
+        Out-Color "$($p.Label):" 'White' -NoNewline
+        Out-Color " $($p.Path)" 'DarkGray'
+    }
+    Write-Host ''
+    Out-Color '  If you have Claude Desktop or Claude Code installed and this still' 'DarkGray'
+    Out-Color '  shows nothing, file an issue at https://github.com/plutosecurity/Claude-Sec/issues' 'DarkGray'
     Write-Host ''
     return
 }

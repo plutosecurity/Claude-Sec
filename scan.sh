@@ -189,6 +189,26 @@ fi
 
 if [ "$total" -eq 0 ]; then
   printf '  %sNo Claude connectors or plugins found on this machine.%s\n\n' "$PEACH" "$RESET"
+  printf '  %sScanned paths:%s\n' "$GRAY" "$RESET"
+  for entry in \
+    "file|Claude Code installed plugins|$USER_DIR/plugins/installed_plugins.json" \
+    "dir|Claude Desktop extensions|$APP_DATA/Claude Extensions" \
+    "file|Claude Desktop config|$APP_DATA/claude_desktop_config.json" \
+    "dir|Claude skill plugins|$APP_DATA/local-agent-mode-sessions"
+  do
+    IFS='|' read -r kind label path <<EOF
+$entry
+EOF
+    if [ "$kind" = "file" ] && [ -f "$path" ]; then
+      printf '    %s[ found ]%s %s%s:%s %s%s%s\n' "$GREEN" "$RESET" "$BOLD" "$label" "$RESET" "$DIM" "$path" "$RESET"
+    elif [ "$kind" = "dir" ] && [ -d "$path" ]; then
+      printf '    %s[ found ]%s %s%s:%s %s%s%s\n' "$GREEN" "$RESET" "$BOLD" "$label" "$RESET" "$DIM" "$path" "$RESET"
+    else
+      printf '    %s[missing]%s %s%s:%s %s%s%s\n' "$GRAY" "$RESET" "$BOLD" "$label" "$RESET" "$DIM" "$path" "$RESET"
+    fi
+  done
+  printf '\n  %sIf you have Claude Desktop or Claude Code installed and this still%s\n' "$GRAY" "$RESET"
+  printf '  %sshows nothing, file an issue at https://github.com/plutosecurity/Claude-Sec/issues%s\n\n' "$GRAY" "$RESET"
   exit 0
 fi
 
