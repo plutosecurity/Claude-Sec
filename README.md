@@ -13,7 +13,7 @@ No dependencies required — uses your shell's native tooling.
 ### macOS / Linux (bash)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/plutosecurity/Claude-Connectors-Scanner/main/scan.sh | bash
+curl -fsSL https://raw.githubusercontent.com/plutosecurity/Claude-Sec/main/scan.sh | bash
 ```
 
 > If you have [jq](https://jqlang.github.io/jq/) installed, the script will pick up
@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/plutosecurity/Claude-Connectors-Sca
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/plutosecurity/Claude-Connectors-Scanner/main/scan.ps1 | iex
+irm https://raw.githubusercontent.com/plutosecurity/Claude-Sec/main/scan.ps1 | iex
 ```
 
 ## Manual install
@@ -87,4 +87,4 @@ Each name in the printed list can be searched on
 ## Issues
 
 Spotted something the scanner missed, or want it to support another path?
-[Open an issue.](https://github.com/plutosecurity/Claude-Connectors-Scanner/issues)
+[Open an issue.](https://github.com/plutosecurity/Claude-Sec/issues)
