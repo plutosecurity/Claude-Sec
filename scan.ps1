@@ -23,7 +23,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 function Out-Color {
     param(
         [Parameter(Mandatory=$true, Position=0)][string]$Text,
-        [string]$Color = 'White',
+        [Parameter(Position=1)][string]$Color = 'White',
         [switch]$NoNewline
     )
     if ($NoColor) {
@@ -38,14 +38,19 @@ function Out-Color {
 }
 
 # ---- Paths ----------------------------------------------------------
-$UserDir = Join-Path $env:USERPROFILE '.claude'
-$AppData = if ($env:APPDATA) { Join-Path $env:APPDATA 'Claude' } else { Join-Path $env:USERPROFILE 'AppData\Roaming\Claude' }
+# Use string concat instead of Join-Path because Join-Path with a null
+# parent silently swallows the surrounding hashtable entry under
+# $ErrorActionPreference='SilentlyContinue'.
+$UserDir = if ($env:USERPROFILE) { "$env:USERPROFILE\.claude" } else { '' }
+$AppData = if ($env:APPDATA) { "$env:APPDATA\Claude" }
+           elseif ($env:USERPROFILE) { "$env:USERPROFILE\AppData\Roaming\Claude" }
+           else { '' }
 
 $scannedPaths = @(
-    @{ Label = 'Claude Code installed plugins'; Path = (Join-Path $UserDir 'plugins\installed_plugins.json'); Kind = 'file' }
-    @{ Label = 'Claude Desktop extensions';     Path = (Join-Path $AppData 'Claude Extensions');             Kind = 'dir'  }
-    @{ Label = 'Claude Desktop config';         Path = (Join-Path $AppData 'claude_desktop_config.json');    Kind = 'file' }
-    @{ Label = 'Claude skill plugins';          Path = (Join-Path $AppData 'local-agent-mode-sessions');     Kind = 'dir'  }
+    @{ Label = 'Claude Code installed plugins'; Path = "$UserDir\plugins\installed_plugins.json"; Kind = 'file' }
+    @{ Label = 'Claude Desktop extensions';     Path = "$AppData\Claude Extensions";              Kind = 'dir'  }
+    @{ Label = 'Claude Desktop config';         Path = "$AppData\claude_desktop_config.json";     Kind = 'file' }
+    @{ Label = 'Claude skill plugins';          Path = "$AppData\local-agent-mode-sessions";      Kind = 'dir'  }
 )
 
 # ---- Banner (ASCII only) -------------------------------------------
