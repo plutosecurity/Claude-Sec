@@ -1,7 +1,7 @@
-﻿# Claude Connectors Scanner (Windows)
+# Claude Connectors Scanner (Windows)
 #
 # Lists Claude connectors and plugins installed on this machine.
-# Output is printed to the terminal only — nothing leaves your computer.
+# Output is printed to the terminal only - nothing leaves your computer.
 #
 # Look up the listed names on https://claudesec.pluto.security to see
 # security risk analysis, tools breakdown, and remediation guidance.
@@ -16,14 +16,9 @@ param(
 
 $ErrorActionPreference = 'SilentlyContinue'
 
-# Force UTF-8 output so the box-drawing characters in the banner render
-# correctly across PowerShell hosts (Windows Terminal, ISE, classic console).
-try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
-$OutputEncoding = [Text.Encoding]::UTF8
-
-# ── Color helpers ─────────────────────────────────────────────────────
+# ---- Color helpers --------------------------------------------------
 # Use native PowerShell -ForegroundColor (works in every host since PS 1.0)
-# instead of ANSI escapes — irm | iex pipelines and older terminals can't
+# instead of ANSI escapes - irm | iex pipelines and older terminals can't
 # always render escape sequences.
 function Out-Color {
     param(
@@ -42,12 +37,10 @@ function Out-Color {
     }
 }
 
-# ── Paths ──────────────────────────────────────────────────────────────
+# ---- Paths ----------------------------------------------------------
 $UserDir = Join-Path $env:USERPROFILE '.claude'
 $AppData = if ($env:APPDATA) { Join-Path $env:APPDATA 'Claude' } else { Join-Path $env:USERPROFILE 'AppData\Roaming\Claude' }
 
-# Each entry: { Label = '...'; Path = '...' }. We populate a status next to
-# each as we go so the user can see what was scanned even when empty.
 $scannedPaths = @(
     @{ Label = 'Claude Code installed plugins'; Path = (Join-Path $UserDir 'plugins\installed_plugins.json'); Kind = 'file' }
     @{ Label = 'Claude Desktop extensions';     Path = (Join-Path $AppData 'Claude Extensions');             Kind = 'dir'  }
@@ -55,18 +48,19 @@ $scannedPaths = @(
     @{ Label = 'Claude skill plugins';          Path = (Join-Path $AppData 'local-agent-mode-sessions');     Kind = 'dir'  }
 )
 
-# ── Banner ─────────────────────────────────────────────────────────────
+# ---- Banner (ASCII only) -------------------------------------------
 $banner = @(
-    '██████╗ ██╗     ██╗   ██╗████████╗ ██████╗',
-    '██╔══██╗██║     ██║   ██║╚══██╔══╝██╔═══██╗',
-    '██████╔╝██║     ██║   ██║   ██║   ██║   ██║',
-    '██╔═══╝ ██║     ██║   ██║   ██║   ██║   ██║',
-    '██║     ███████╗╚██████╔╝   ██║   ╚██████╔╝',
-    '╚═╝     ╚══════╝ ╚═════╝    ╚═╝    ╚═════╝'
+    '  ____   _      _   _   _____    ___  ',
+    ' |  _ \ | |    | | | | |_   _|  / _ \ ',
+    ' | |_) || |    | | | |   | |   | | | |',
+    ' |  __/ | |    | | | |   | |   | | | |',
+    ' | |    | |___ | |_| |   | |   | |_| |',
+    ' |_|    |_____| \___/    |_|    \___/ '
 )
 
 Write-Host ''
 Out-Color '              P O W E R E D   B Y' 'DarkGray'
+Write-Host ''
 foreach ($line in $banner) { Out-Color $line 'Yellow' }
 Write-Host ''
 Out-Color '       S E C U R I T Y  -  C L A U D E S E C  F L E E T  S C A N N E R' 'DarkGray'
@@ -74,7 +68,7 @@ Write-Host ''
 Out-Color "  Scanning Windows | home: $env:USERPROFILE" 'DarkGray'
 Write-Host ''
 
-# ── Item builder ──────────────────────────────────────────────────────
+# ---- Item builder --------------------------------------------------
 function New-ScanItem ([string]$Name, [string]$Version, [string]$Publisher, [string]$Subtype) {
     [pscustomobject]@{
         Name      = $Name
@@ -91,7 +85,7 @@ function Read-JsonFile ([string]$Path) {
     } catch { return $null }
 }
 
-# ── Scan: Connectors ─────────────────────────────────────────────────
+# ---- Scan: Connectors ----------------------------------------------
 $connectors = New-Object System.Collections.ArrayList
 
 $extDir = Join-Path $AppData 'Claude Extensions'
@@ -119,7 +113,7 @@ if ($cfg -and $cfg.mcpServers) {
     }
 }
 
-# ── Scan: Plugins ────────────────────────────────────────────────────
+# ---- Scan: Plugins -------------------------------------------------
 $plugins = New-Object System.Collections.ArrayList
 
 $installed = Read-JsonFile (Join-Path $UserDir 'plugins\installed_plugins.json')
@@ -157,15 +151,15 @@ if (Test-Path -LiteralPath $sessions -PathType Container) {
     }
 }
 
-# ── Render ───────────────────────────────────────────────────────────
+# ---- Render --------------------------------------------------------
 function Show-Section ([string]$Title, [System.Collections.IEnumerable]$Items) {
     $count = ($Items | Measure-Object).Count
     if ($count -eq 0) { return }
     Out-Color "  $Title" 'DarkYellow' -NoNewline
     Out-Color "  ($count)" 'DarkGray'
-    Out-Color ('  ' + ('─' * 64)) 'DarkGray'
+    Out-Color ('  ' + ('-' * 64)) 'DarkGray'
     foreach ($item in $Items) {
-        Out-Color '  • ' 'Green' -NoNewline
+        Out-Color '  * ' 'Green' -NoNewline
         Out-Color $item.Name 'White' -NoNewline
         if ($item.Version)   { Out-Color " $($item.Version)" 'DarkGray' -NoNewline }
         if ($item.Publisher) { Out-Color " by $($item.Publisher)" 'DarkGray' -NoNewline }
