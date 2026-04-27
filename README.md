@@ -22,13 +22,8 @@ curl -fsSL https://raw.githubusercontent.com/plutosecurity/Claude-Sec/main/scan.
 ### Windows (PowerShell)
 
 ```powershell
-$t="$env:TEMP\scan.ps1"; iwr https://raw.githubusercontent.com/plutosecurity/Claude-Sec/main/scan.ps1 -OutFile $t -UseBasicParsing; powershell -ExecutionPolicy Bypass -File $t
+irm https://raw.githubusercontent.com/plutosecurity/Claude-Sec/main/scan.ps1 | iex
 ```
-
-> Why not `irm | iex`? PowerShell 5.1 (the default on Windows) decodes web
-> responses as ISO-8859-1, which corrupts the UTF-8 banner. Downloading to a
-> file first and then executing avoids that and also handles execution-policy
-> restrictions cleanly.
 
 ## Manual install
 
