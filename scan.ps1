@@ -16,20 +16,30 @@ param(
 
 $ErrorActionPreference = 'SilentlyContinue'
 
-# ── ANSI escape codes (modern PowerShell on Windows 10+ supports them) ──
-$ESC = [char]27
-if ($NoColor) {
-    $RESET = ''; $BOLD = ''; $DIM = ''
-    $PEACH = ''; $ORANGE = ''; $GREEN = ''; $CYAN = ''; $GRAY = ''
-} else {
-    $RESET  = "$ESC[0m"
-    $BOLD   = "$ESC[1m"
-    $DIM    = "$ESC[2m"
-    $PEACH  = "$ESC[38;5;216m"   # matches the homepage peach background
-    $ORANGE = "$ESC[38;5;208m"
-    $GREEN  = "$ESC[38;5;76m"
-    $CYAN   = "$ESC[38;5;87m"
-    $GRAY   = "$ESC[38;5;245m"
+# Force UTF-8 output so the box-drawing characters in the banner render
+# correctly across PowerShell hosts (Windows Terminal, ISE, classic console).
+try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
+$OutputEncoding = [Text.Encoding]::UTF8
+
+# ── Color helpers ─────────────────────────────────────────────────────
+# Use native PowerShell -ForegroundColor (works in every host since PS 1.0)
+# instead of ANSI escapes — irm | iex pipelines and older terminals can't
+# always render escape sequences.
+function Out-Color {
+    param(
+        [Parameter(Mandatory=$true, Position=0)][string]$Text,
+        [string]$Color = 'White',
+        [switch]$NoNewline
+    )
+    if ($NoColor) {
+        if ($NoNewline) { Write-Host $Text -NoNewline } else { Write-Host $Text }
+    } else {
+        if ($NoNewline) {
+            Write-Host $Text -ForegroundColor $Color -NoNewline
+        } else {
+            Write-Host $Text -ForegroundColor $Color
+        }
+    }
 }
 
 # ── Paths ──────────────────────────────────────────────────────────────
@@ -38,21 +48,21 @@ $AppData = if ($env:APPDATA) { Join-Path $env:APPDATA 'Claude' } else { Join-Pat
 
 # ── Banner ─────────────────────────────────────────────────────────────
 $banner = @(
-'██████╗ ██╗     ██╗   ██╗████████╗ ██████╗',
-'██╔══██╗██║     ██║   ██║╚══██╔══╝██╔═══██╗',
-'██████╔╝██║     ██║   ██║   ██║   ██║   ██║',
-'██╔═══╝ ██║     ██║   ██║   ██║   ██║   ██║',
-'██║     ███████╗╚██████╔╝   ██║   ╚██████╔╝',
-'╚═╝     ╚══════╝ ╚═════╝    ╚═╝    ╚═════╝'
+    '██████╗ ██╗     ██╗   ██╗████████╗ ██████╗',
+    '██╔══██╗██║     ██║   ██║╚══██╔══╝██╔═══██╗',
+    '██████╔╝██║     ██║   ██║   ██║   ██║   ██║',
+    '██╔═══╝ ██║     ██║   ██║   ██║   ██║   ██║',
+    '██║     ███████╗╚██████╔╝   ██║   ╚██████╔╝',
+    '╚═╝     ╚══════╝ ╚═════╝    ╚═╝    ╚═════╝'
 )
 
 Write-Host ''
-Write-Host "${GRAY}              P O W E R E D   B Y${RESET}"
-foreach ($line in $banner) { Write-Host "${PEACH}${BOLD}${line}${RESET}" }
+Out-Color '              P O W E R E D   B Y' 'DarkGray'
+foreach ($line in $banner) { Out-Color $line 'Yellow' }
 Write-Host ''
-Write-Host "       ${GRAY}S E C U R I T Y   .   C L A U D E S E C   F L E E T   S C A N N E R${RESET}"
+Out-Color '       S E C U R I T Y  -  C L A U D E S E C  F L E E T  S C A N N E R' 'DarkGray'
 Write-Host ''
-Write-Host "  ${DIM}Scanning Windows | home: $env:USERPROFILE${RESET}"
+Out-Color "  Scanning Windows | home: $env:USERPROFILE" 'DarkGray'
 Write-Host ''
 
 # ── Item builder ──────────────────────────────────────────────────────
@@ -142,14 +152,16 @@ if (Test-Path -LiteralPath $sessions -PathType Container) {
 function Show-Section ([string]$Title, [System.Collections.IEnumerable]$Items) {
     $count = ($Items | Measure-Object).Count
     if ($count -eq 0) { return }
-    Write-Host "  ${ORANGE}${BOLD}${Title}${RESET}  ${GRAY}($count)${RESET}"
-    Write-Host "  ${DIM}$('-' * 64)${RESET}"
+    Out-Color "  $Title" 'DarkYellow' -NoNewline
+    Out-Color "  ($count)" 'DarkGray'
+    Out-Color ('  ' + ('─' * 64)) 'DarkGray'
     foreach ($item in $Items) {
-        $line = "  ${GREEN}*${RESET} ${BOLD}$($item.Name)${RESET}"
-        if ($item.Version)   { $line += " ${GRAY}$($item.Version)${RESET}" }
-        if ($item.Publisher) { $line += " ${DIM}by $($item.Publisher)${RESET}" }
-        if ($item.Subtype)   { $line += " ${DIM}[$($item.Subtype)]${RESET}" }
-        Write-Host $line
+        Out-Color '  • ' 'Green' -NoNewline
+        Out-Color $item.Name 'White' -NoNewline
+        if ($item.Version)   { Out-Color " $($item.Version)" 'DarkGray' -NoNewline }
+        if ($item.Publisher) { Out-Color " by $($item.Publisher)" 'DarkGray' -NoNewline }
+        if ($item.Subtype)   { Out-Color " [$($item.Subtype)]" 'DarkGray' -NoNewline }
+        Write-Host ''
     }
     Write-Host ''
 }
@@ -159,13 +171,15 @@ Show-Section 'Plugins'    $plugins
 
 $total = $connectors.Count + $plugins.Count
 if ($total -eq 0) {
-    Write-Host "  ${PEACH}No Claude connectors or plugins found on this machine.${RESET}"
+    Out-Color '  No Claude connectors or plugins found on this machine.' 'Yellow'
     Write-Host ''
     return
 }
 
-Write-Host "  ${BOLD}${total}${RESET} ${GRAY}items found.${RESET}"
+Out-Color "  $total" 'White' -NoNewline
+Out-Color ' items found.' 'DarkGray'
 Write-Host ''
-Write-Host "  ${GRAY}Search any of these on${RESET} ${CYAN}${BOLD}https://claudesec.pluto.security${RESET}"
-Write-Host "  ${GRAY}to see risk severity, tool-by-tool analysis, and remediation tips.${RESET}"
+Out-Color '  Search any of these on ' 'DarkGray' -NoNewline
+Out-Color 'https://claudesec.pluto.security' 'Cyan'
+Out-Color '  to see risk severity, tool-by-tool analysis, and remediation tips.' 'DarkGray'
 Write-Host ''
