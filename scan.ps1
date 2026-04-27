@@ -1,4 +1,4 @@
-# Claude Connectors Scanner (Windows)
+﻿# Claude Connectors Scanner (Windows)
 #
 # Lists Claude connectors and plugins installed on this machine.
 # Output is printed to the terminal only — nothing leaves your computer.
